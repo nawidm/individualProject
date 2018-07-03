@@ -100,18 +100,22 @@ var MyForm = React.createClass({
 	getInitialState: function(){
 		return {
 			adding: true,
+			editing: false,
 			firstNames: [],
 			surNames: [],
-			accNumbers: []	
+			accNumbers: [],
+			index: 0	
 				}
 	},
 
 	setToCreate: function(){
-		this.setState({adding: true});
+		this.setState({adding: true,
+						editing: false});
 	},
 
 	setToView: function(){
-		this.setState({adding: false});
+		this.setState({adding: false,
+						editing: false});
 	},
 
 	addNewAccount: function(){
@@ -120,6 +124,27 @@ var MyForm = React.createClass({
 		this.state.accNumbers.push(this.refs.accNumber.value);
 
 		this.setToView();
+	},
+
+	removeRow: function(i){
+		var arr1 = this.state.firstNames;
+		var arr2 = this.state.surNames;
+		var arr3 = this.state.accNumbers;
+		arr1.splice(i,1);
+		arr2.splice(i,1);
+		arr3.splice(i,1);
+		this.setState({
+					firstNames: arr1,
+					surNames: arr2,
+					accNumbers: arr3
+				})
+	},
+
+	editRow: function(i){
+		this.setState({
+					editing: true,
+					index: i,
+				})
 	},
 
 	renderAdding: function(){
@@ -170,18 +195,10 @@ var MyForm = React.createClass({
               <td>{this.state.firstNames[i]}</td>
               <td>{this.state.surNames[i]}</td>
               <td>{this.state.accNumbers[i]}</td>
+			  <td><Button type="Edit" ref="test" index={i} parentMethod={this.editRow}/></td>
+			  <td><Button type="Remove" index={i} parentMethod={this.removeRow} /></td>
             </tr>
       })}
-            <tr>
-              <td>Mary</td>
-              <td>Moe</td>
-              <td>mary@example.com</td>
-            </tr>
-            <tr>
-              <td>July</td>
-              <td>Dooley</td>
-              <td>july@example.com</td>
-            </tr>
           </tbody>
         </table>
       </div>
@@ -189,62 +206,72 @@ var MyForm = React.createClass({
 		);
 	},
 
+  renderEditing: function(i){
+	return (
+		<form id="myForm" className="form-horizontal">
+        <div className="form-group">
+          <label className="control-label col-sm-2" htmlfor="First-Name">First-name:</label>
+          <div className="col-sm-10">
+            <input type="text" ref="firstName" className="form-control" id="First-Name" defaultValue={this.state.firstNames[i]}/>
+          </div>
+        </div>
+        <div className="form-group">
+          <label className="control-label col-sm-2" htmlfor="Surname">Surname:</label>
+          <div className="col-sm-10"> 
+            <input type="text" ref="surName"className="form-control" id="Surname" defaultValue={this.state.surNames[i]} />
+          </div>
+        </div>
+        <div className="form-group">
+          <label className="control-label col-sm-2" htmlfor="AccountNumber">Account Number:</label>
+          <div className="col-sm-10"> 
+            <input type="text" ref="accNumber" className="form-control" id="AccountNumber" defaultValue={this.state.accNumbers[i]} />
+          </div>
+        </div>
+        <div className="form-group"> 
+          <div className="col-sm-offset-2 col-sm-10">
+            <button type="submit" onClick={this.save} className="btn btn-default">Save</button>
+          </div>
+        </div>
+      </form>
+
+	);
+  },
+
+  save: function(){
+		this.addNewAccount();
+		this.removeRow(this.state.index);
+	},
   render: function() {
 		if(this.state.adding){
 			return this.renderAdding();
+		} else if(this.state.editing){
+			return this.renderEditing(this.state.index);
 		} else {
 			return this.renderViewing();
 		}
   }
-});
+  });
 
-var Table = React.createClass({
-  render: function() {
-    return (
+	var Button = React.createClass({
 
-      <div className="container">
-        <h2>Current Accounts</h2>           
-        <table className="table">
-          <thead>
-            <tr>
-              <th>First_name</th>
-              <th>Surname</th>
-              <th>Account Number</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>John</td>
-              <td>Doe</td>
-              <td>john@example.com</td>
-            </tr>
-            <tr>
-              <td>Mary</td>
-              <td>Moe</td>
-              <td>mary@example.com</td>
-            </tr>
-            <tr>
-              <td>July</td>
-              <td>Dooley</td>
-              <td>july@example.com</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    );
-  }
-});
+	getInitialState: function(){
+		return {
+			type: this.props.type
+		}
+	},
+	handleClick: function(){
+		this.props.parentMethod(this.props.index);
+	},
+	render: function(){
+			if(this.state.type == "Edit"){
+				return <button type="button" onClick={this.handleClick} className="btn btn-primary">Edit</button>;
+			} else {
+				return <button type="button" onClick={this.handleClick} className="btn btn-danger">Remove</button>;
+			}
+	},
+	
+	});
 
-var Body = React.createClass({
-    render: function(){
-        return (
-          <div id="body">
-            <NavBar />
-            <MyForm />
-          </div>
-        )
-  }
-});
 
 ReactDOM.render(<div>
 					<NavBar/>

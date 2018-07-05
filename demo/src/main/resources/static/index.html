@@ -10,6 +10,8 @@
 	<script src="https://unpkg.com/react@15/dist/react.min.js"> </script><script src="https://unpkg.com/react-dom@15/dist/react-dom.min.js">
 	</script>
 	<script src="https://unpkg.com/babel-standalone@6.15.0/babel.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+	
 </head>
 <body>
 
@@ -95,18 +97,34 @@ var NavBar = React.createClass({
 
 var MyForm = React.createClass({
 
-
-
 	getInitialState: function(){
 		return {
+			dataMounted: false,
 			adding: true,
 			editing: false,
+			id: [],
 			firstNames: [],
 			surNames: [],
 			accNumbers: [],
 			index: 0	
 				}
 	},
+
+	loadAccountsFromServer: function () {
+    	var self = this;
+    	$.ajax({
+      		url: "http://localhost:8080/demo/all",
+			dataType: 'json'
+    	}).then(function (data) {
+			for(var i=0; i<data.length; i++){
+				self.state.id.push(data[i].id);
+				self.state.firstNames.push(data[i].firstName);
+				self.state.surNames.push(data[i].surName);
+				self.state.accNumbers.push(data[i].accNumber);
+			}
+			self.setState({dataMounted: true});
+    	});
+  	},
 
 	setToCreate: function(){
 		this.setState({adding: true,
@@ -119,31 +137,46 @@ var MyForm = React.createClass({
 	},
 
 	addNewAccount: function(){
-		this.state.firstNames.push(this.refs.firstName.value);
-		this.state.surNames.push(this.refs.surName.value);
-		this.state.accNumbers.push(this.refs.accNumber.value);
-
+    	var self = this;
+    	$.ajax({
+      		url: "http://localhost:8080/demo/add?firstname="+this.refs.firstName.value+"&surname="+this.refs.surName.value+"&accNumber="+this.refs.accNumber.value,
+			type: 'POST'
+    	}).then(function (data) {
+			self.setState({		
+						id: [],
+						firstNames: [],
+						surNames: [],
+						accNumbers: [],
+						dataMounted: false,
+				});
+    	});
 		this.setToView();
 	},
 
 	removeRow: function(i){
-		var arr1 = this.state.firstNames;
-		var arr2 = this.state.surNames;
-		var arr3 = this.state.accNumbers;
-		arr1.splice(i,1);
-		arr2.splice(i,1);
-		arr3.splice(i,1);
-		this.setState({
-					firstNames: arr1,
-					surNames: arr2,
-					accNumbers: arr3
-				})
+
+    	var self = this;
+    	$.ajax({
+      		url: "http://localhost:8080/demo/remove?idRemove="+i,
+			type: 'POST'
+    	}).then(function (data) {
+			self.setState({
+						
+						id: [],
+						firstNames: [],
+						surNames: [],
+						accNumbers: [],
+						dataMounted: false,
+				});
+    	});
+
 	},
 
 	editRow: function(i){
 		this.setState({
-					editing: true,
 					index: i,
+					editing: true
+					
 				})
 	},
 
@@ -178,6 +211,10 @@ var MyForm = React.createClass({
 	},
 
 	renderViewing: function(){
+		if(!this.state.dataMounted){
+			this.loadAccountsFromServer();
+		}
+
 		return (
 			<div className="container">
         <h2>Current Accounts</h2>           
@@ -190,13 +227,13 @@ var MyForm = React.createClass({
             </tr>
           </thead>
           <tbody>
-			{this.state.firstNames.map((item,i) => {
+			{this.state.id.map((item,i) => {
         return <tr>
               <td>{this.state.firstNames[i]}</td>
               <td>{this.state.surNames[i]}</td>
               <td>{this.state.accNumbers[i]}</td>
 			  <td><Button type="Edit" ref="test" index={i} parentMethod={this.editRow}/></td>
-			  <td><Button type="Remove" index={i} parentMethod={this.removeRow} /></td>
+			  <td><Button type="Remove" index={this.state.id[i]} parentMethod={this.removeRow} /></td>
             </tr>
       })}
           </tbody>
@@ -207,6 +244,7 @@ var MyForm = React.createClass({
 	},
 
   renderEditing: function(i){
+	console.log(i);
 	return (
 		<form id="myForm" className="form-horizontal">
         <div className="form-group">
@@ -238,10 +276,24 @@ var MyForm = React.createClass({
   },
 
   save: function(){
-		this.addNewAccount();
-		this.removeRow(this.state.index);
+    	var self = this;
+    	$.ajax({
+      		url: "http://localhost:8080/demo/edit?idEdit="+this.state.id[this.state.index]+"&firstname="+this.refs.firstName.value+"&surname="+this.refs.surName.value+"&accNumber="+this.refs.accNumber.value,
+			type: 'POST'
+    	}).then(function (data) {
+			self.setState({		
+						id: [],
+						firstNames: [],
+						surNames: [],
+						accNumbers: [],
+						dataMounted: false,
+						editing: false
+				});
+    	});
+
 	},
   render: function() {
+
 		if(this.state.adding){
 			return this.renderAdding();
 		} else if(this.state.editing){
@@ -249,6 +301,7 @@ var MyForm = React.createClass({
 		} else {
 			return this.renderViewing();
 		}
+
   }
   });
 
@@ -269,7 +322,7 @@ var MyForm = React.createClass({
 				return <button type="button" onClick={this.handleClick} className="btn btn-danger">Remove</button>;
 			}
 	},
-	
+	 
 	});
 
 
